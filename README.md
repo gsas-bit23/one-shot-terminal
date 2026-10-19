@@ -31,7 +31,7 @@
 ## Quick Start
 
 ```bash
-# Install dependencies
+# Install dependencies (lint: npm run lint, tests: npm test)
 npm install
 
 # Start development server on http://localhost:3000
@@ -40,3 +40,16 @@ npm run dev
 # Build for production
 npm run build
 ```
+
+---
+
+## Routes
+
+`/` landing page · `/pulse` · `/discover` · `/trackers` · `/perps` · `/yield` · `/vision` · `/portfolio` · `/rewards` · `/token/:addr`
+
+## Security notes
+
+- Trades are signed only by the user's connected browser wallet. Rejecting the prompt aborts the trade; there is no shared-wallet fallback.
+- Never put private keys in `VITE_*` variables: they are bundled into public client JS.
+- The local dev relayer endpoints (`/api/relayer-*`, used for token launch) are **off by default** and only mount under `vite dev` with `ENABLE_DEV_RELAYER=true`. They are unauthenticated: local testnet use only.
+- Sections marked **Demo** show simulated data.

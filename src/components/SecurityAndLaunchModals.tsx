@@ -149,7 +149,7 @@ export const SecurityCenterModal: React.FC<SecurityCenterModalProps> = ({
             </div>
           </div>
 
-          {/* Preset 1 / Preset 2 / Preset 3 Editor (Exact trade.phantom.com feature) */}
+          {/* Preset 1 / Preset 2 / Preset 3 Editor */}
           <div className="rounded-xl bg-[#12161D] border border-[#1C222B] p-4 space-y-4">
             <div className="flex items-center justify-between">
               <div className="text-xs font-bold text-white flex items-center gap-1.5">
@@ -309,6 +309,11 @@ export const LaunchTokenModal: React.FC<LaunchTokenModalProps> = ({
           initialBuyEth,
         }),
       });
+      if (resp.status === 404 || !resp.headers.get('content-type')?.includes('json')) {
+        throw new Error(
+          'Token launch needs the local dev relayer (run `ENABLE_DEV_RELAYER=true npm run dev`). It is disabled by default for security.'
+        );
+      }
       const data = await resp.json();
       if (!data.ok) {
         throw new Error(data.error || 'Failed to launch on Robinhood Chain');

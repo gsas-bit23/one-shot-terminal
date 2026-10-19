@@ -8,7 +8,6 @@ import {
   http,
   parseEther,
 } from 'viem';
-import { privateKeyToAccount } from 'viem/accounts';
 import contractsData from './contracts.json';
 import { TokenMarket, TradePrint } from './marketData';
 
@@ -16,8 +15,6 @@ export const ROBINHOOD_TESTNET_CHAIN_ID = 46630;
 export const ROBINHOOD_TESTNET_HEX_ID = '0xb626'; // 46630 in hex
 export const TERMINAL_ROUTER_ADDRESS = (contractsData.routerAddress ||
   '0x36c34da75352abcd9a4872f791cd00f329487842') as `0x${string}`;
-export const RELAYER_ADDRESS = (contractsData.relayerAddress ||
-  '0xF5dcF5ED313D37bD456B20b78e6697794Fd37cC8') as `0x${string}`;
 
 export const robinhoodTestnet = defineChain({
   id: ROBINHOOD_TESTNET_CHAIN_ID,
@@ -45,22 +42,6 @@ export const publicClient = createPublicClient({
   chain: robinhoodTestnet,
   transport: http('https://rpc.testnet.chain.robinhood.com'),
 });
-
-// Real on-chain Robinhood Chain Testnet Relayer client for 0-gas/embedded execution & faucet
-const envRelayerKey = (import.meta as unknown as { env?: Record<string, string> }).env
-  ?.VITE_RELAYER_PRIVATE_KEY;
-const relayerAccount =
-  envRelayerKey && envRelayerKey.startsWith('0x')
-    ? privateKeyToAccount(envRelayerKey as `0x${string}`)
-    : null;
-
-export const relayerWalletClient = relayerAccount
-  ? createWalletClient({
-      account: relayerAccount,
-      chain: robinhoodTestnet,
-      transport: http('https://rpc.testnet.chain.robinhood.com'),
-    })
-  : null;
 
 export const ROUTER_ABI = contractsData.RobinhoodTerminalRouter.abi;
 export const TOKEN_ABI = contractsData.RobinhoodZeroFeeToken.abi;
@@ -176,20 +157,11 @@ export function getBrowserWalletClient(
 
 export async function connectRobinhoodWallet(): Promise<{
   address: string;
-  mode: 'extension' | 'relayer';
+  mode: 'extension';
 }> {
-  if (typeof window !== 'undefined' && (window.ethereum || window.phantom?.ethereum || window.rabby)) {
-    try {
-      const res = await ensureRobinhoodTestnet();
-      return { address: res.address, mode: 'extension' };
-    } catch {
-      // If user cancels extension prompt, fall back to live on-chain Robinhood Testnet relayer account
-    }
-  }
-  return {
-    address: RELAYER_ADDRESS,
-    mode: 'relayer',
-  };
+  // A wallet cancel/rejection propagates as an error. There is no shared-wallet fallback.
+  const res = await ensureRobinhoodTestnet();
+  return { address: res.address, mode: 'extension' };
 }
 
 /**
@@ -361,206 +333,65 @@ export async function fetchLiveRobinhoodExplorerData(): Promise<{
 }
 
 /**
- * Executes a REAL on-chain 0%-Fee Spot Buy on Robinhood Chain Testnet (Chain ID 46630).
- * Uses the user's connected browser wallet if it has sufficient Testnet ETH, or broadcasts via
- * the live on-chain Robinhood Chain Testnet Relayer so every trade settles on-chain with a real tx hash!
+ * Executes an on-chain spot buy using ONLY the user's connected browser wallet.
+ * If the user rejects or has no wallet, the trade aborts. There is no shared-wallet fallback.
  */
 export async function executeZeroFeeBuyOnChain(
   tokenAddress: string,
   ethAmountStr: string,
-  _slippagePct: number,
-  preferExtensionWallet = false
-): Promise<{ txHash: string; blockNumber: number; tokensReceivedFormatted: string }> {
-  const deadline = BigInt(Math.floor(Date.now() / 1000) + 1800);
-  const requestedEth = parseFloat(ethAmountStr) || 0.0002;
-
-  // 1. Try connected browser wallet on Robinhood Chain Testnet (46630) if preferred and funded
-  if (preferExtensionWallet && typeof window !== 'undefined' && window.ethereum) {
-    try {
-      const { address, provider } = await ensureRobinhoodTestnet();
-      const userBal = await publicClient.getBalance({ address: address as `0x${string}` });
-      const sendWei = parseEther(Math.min(requestedEth, Number(formatEther(userBal)) * 0.9).toFixed(6));
-      if (sendWei > 0n) {
-        const walletClient = getBrowserWalletClient(address as `0x${string}`, provider);
-        const txHash = await walletClient.writeContract({
-          address: TERMINAL_ROUTER_ADDRESS,
-          abi: ROUTER_ABI,
-          functionName: 'buyTokensZeroFee',
-          args: [tokenAddress as `0x${string}`, 0n, deadline],
-          value: sendWei,
-        });
-        const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
-        return {
-          txHash,
-          blockNumber: Number(receipt.blockNumber),
-          tokensReceivedFormatted: ((requestedEth * 1_073_000_000) / 3).toFixed(0),
-        };
-      }
-    } catch (extErr: any) {
-      if (extErr?.code === 4001) {
-        throw new Error('Transaction rejected in wallet.');
-      }
-      // If user wallet has 0 testnet ETH, fall through to on-chain Robinhood Relayer execution
+  minTokensOut: bigint = 0n
+): Promise<{ txHash: string; blockNumber: number }> {
+  const requestedEth = parseFloat(ethAmountStr);
+  if (!Number.isFinite(requestedEth) || requestedEth <= 0) throw new Error('Invalid ETH amount.');
+  const deadline = BigInt(Math.floor(Date.now() / 1000) + 600);
+  const { address, provider } = await ensureRobinhoodTestnet();
+  const walletClient = getBrowserWalletClient(address as `0x${string}`, provider);
+  try {
+    const txHash = await walletClient.writeContract({
+      address: TERMINAL_ROUTER_ADDRESS,
+      abi: ROUTER_ABI,
+      functionName: 'buyTokensZeroFee',
+      args: [tokenAddress as `0x${string}`, minTokensOut, deadline],
+      value: parseEther(requestedEth.toFixed(18).replace(/0+$/, '').replace(/\.$/, '')),
+    });
+    const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+    return { txHash, blockNumber: Number(receipt.blockNumber) };
+  } catch (err: any) {
+    if (err?.code === 4001 || /reject|denied/i.test(err?.message || '')) {
+      throw new Error('Transaction rejected in wallet.');
     }
+    throw err;
   }
-
-  // 2. Broadcast real on-chain transaction on Robinhood Chain Testnet (46630) via funded Relayer
-  if (!relayerWalletClient || !relayerAccount) {
-    throw new Error('Robinhood Chain Testnet Relayer not configured.');
-  }
-
-  // Scale relayer value to preserve testnet gas while executing a 100% real on-chain swap
-  const onChainEthValue = Math.min(requestedEth, 0.00005).toFixed(6);
-  const txHash = await relayerWalletClient.writeContract({
-    address: TERMINAL_ROUTER_ADDRESS,
-    abi: ROUTER_ABI,
-    functionName: 'buyTokensZeroFee',
-    args: [tokenAddress as `0x${string}`, 0n, deadline],
-    value: parseEther(onChainEthValue),
-  });
-
-  const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
-  return {
-    txHash,
-    blockNumber: Number(receipt.blockNumber),
-    tokensReceivedFormatted: ((requestedEth * 1_073_000_000) / 3).toFixed(0),
-  };
 }
 
 /**
- * Executes a REAL on-chain 0%-Fee Spot Sell on Robinhood Chain Testnet (Chain ID 46630).
+ * Executes an on-chain spot sell using ONLY the user's connected browser wallet.
  */
 export async function executeZeroFeeSellOnChain(
   tokenAddress: string,
   tokenAmountStr: string,
-  _slippagePct: number,
-  preferExtensionWallet = false
+  minEthOut: bigint = 0n
 ): Promise<{ txHash: string; blockNumber: number }> {
-  const deadline = BigInt(Math.floor(Date.now() / 1000) + 1800);
-
-  if (preferExtensionWallet && typeof window !== 'undefined' && window.ethereum) {
-    try {
-      const { address, provider } = await ensureRobinhoodTestnet();
-      const routerBal = (await publicClient
-        .readContract({
-          address: TERMINAL_ROUTER_ADDRESS,
-          abi: ROUTER_ABI,
-          functionName: 'userRouterTokenBalances',
-          args: [address as `0x${string}`, tokenAddress as `0x${string}`],
-        })
-        .catch(() => 0n)) as bigint;
-
-      if (routerBal > 0n) {
-        const walletClient = getBrowserWalletClient(address as `0x${string}`, provider);
-        const sellWei = routerBal / 2n > 0n ? routerBal / 2n : routerBal;
-        const txHash = await walletClient.writeContract({
-          address: TERMINAL_ROUTER_ADDRESS,
-          abi: ROUTER_ABI,
-          functionName: 'sellTokensZeroFee',
-          args: [tokenAddress as `0x${string}`, sellWei, 0n, deadline],
-        });
-        const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
-        return { txHash, blockNumber: Number(receipt.blockNumber) };
-      }
-    } catch (extErr: any) {
-      if (extErr?.code === 4001) throw new Error('Transaction rejected in wallet.');
-    }
-  }
-
-  if (!relayerWalletClient || !relayerAccount) {
-    throw new Error('Robinhood Chain Testnet Relayer not configured.');
-  }
-
-  // Check relayer's router token balance; if 0, do a micro buy+sell or sell available balance
-  let routerBal = (await publicClient
-    .readContract({
+  const amt = parseFloat(tokenAmountStr);
+  if (!Number.isFinite(amt) || amt <= 0) throw new Error('Invalid token amount.');
+  const deadline = BigInt(Math.floor(Date.now() / 1000) + 600);
+  const { address, provider } = await ensureRobinhoodTestnet();
+  const walletClient = getBrowserWalletClient(address as `0x${string}`, provider);
+  try {
+    const txHash = await walletClient.writeContract({
       address: TERMINAL_ROUTER_ADDRESS,
       abi: ROUTER_ABI,
-      functionName: 'userRouterTokenBalances',
-      args: [relayerAccount.address, tokenAddress as `0x${string}`],
-    })
-    .catch(() => 0n)) as bigint;
-
-  if (routerBal === 0n) {
-    const buyTx = await relayerWalletClient.writeContract({
-      address: TERMINAL_ROUTER_ADDRESS,
-      abi: ROUTER_ABI,
-      functionName: 'buyTokensZeroFee',
-      args: [tokenAddress as `0x${string}`, 0n, deadline],
-      value: parseEther('0.00002'),
+      functionName: 'sellTokensZeroFee',
+      args: [tokenAddress as `0x${string}`, parseEther(amt.toFixed(6)), minEthOut, deadline],
     });
-    await publicClient.waitForTransactionReceipt({ hash: buyTx });
-    routerBal = (await publicClient.readContract({
-      address: TERMINAL_ROUTER_ADDRESS,
-      abi: ROUTER_ABI,
-      functionName: 'userRouterTokenBalances',
-      args: [relayerAccount.address, tokenAddress as `0x${string}`],
-    })) as bigint;
+    const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+    return { txHash, blockNumber: Number(receipt.blockNumber) };
+  } catch (err: any) {
+    if (err?.code === 4001 || /reject|denied/i.test(err?.message || '')) {
+      throw new Error('Transaction rejected in wallet.');
+    }
+    throw err;
   }
-
-  const sellWei = routerBal / 2n > 0n ? routerBal / 2n : routerBal;
-  const txHash = await relayerWalletClient.writeContract({
-    address: TERMINAL_ROUTER_ADDRESS,
-    abi: ROUTER_ABI,
-    functionName: 'sellTokensZeroFee',
-    args: [tokenAddress as `0x${string}`, sellWei, 0n, deadline],
-  });
-  const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
-  return {
-    txHash,
-    blockNumber: Number(receipt.blockNumber),
-  };
-}
-
-/**
- * Executes a REAL on-chain 0%-Fee Perp Order on Robinhood Chain Testnet (Chain ID 46630).
- */
-export async function executeOpenPerpOnChain(
-  assetSymbol: string,
-  isLong: boolean,
-  leverage: number,
-  entryPriceUsd: number
-): Promise<{ txHash: string; blockNumber: number }> {
-  if (!relayerWalletClient) {
-    throw new Error('Robinhood Testnet Relayer unavailable');
-  }
-  const priceE8 = BigInt(Math.round(entryPriceUsd * 1e8));
-  const txHash = await relayerWalletClient.writeContract({
-    address: TERMINAL_ROUTER_ADDRESS,
-    abi: ROUTER_ABI,
-    functionName: 'openPerpPositionZeroFee',
-    args: [assetSymbol, isLong, BigInt(leverage), priceE8],
-    value: parseEther('0.00002'),
-  });
-  const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
-  return {
-    txHash,
-    blockNumber: Number(receipt.blockNumber),
-  };
-}
-
-/**
- * Sends REAL Robinhood Chain Testnet ETH from the Relayer Faucet to the user's connected wallet!
- */
-export async function claimRealTestnetEthFaucet(recipientAddress: string): Promise<{
-  txHash: string;
-  amountEth: string;
-}> {
-  if (!relayerWalletClient || !relayerAccount) {
-    throw new Error('Faucet relayer unavailable');
-  }
-  const target =
-    recipientAddress && recipientAddress.startsWith('0x') && recipientAddress.length === 42
-      ? (recipientAddress as `0x${string}`)
-      : relayerAccount.address;
-
-  const amountEth = '0.0002';
-  const txHash = await relayerWalletClient.sendTransaction({
-    to: target,
-    value: parseEther(amountEth),
-  });
-  await publicClient.waitForTransactionReceipt({ hash: txHash });
-  return { txHash, amountEth };
 }
 
 export const ROBINHOOD_TESTNET_CONFIG = {
@@ -583,7 +414,7 @@ export async function fetchWalletEthBalance(address: string): Promise<string> {
     const balWei = await publicClient.getBalance({ address: address as `0x${string}` });
     return Number(formatEther(balWei)).toFixed(4);
   } catch {
-    return '0.4500';
+    return '0.0000';
   }
 }
 
@@ -608,6 +439,12 @@ export async function fetchChainTelemetry(): Promise<{
   }
 }
 
+export type SwapResult = { txHash: string | null; mode: 'ONCHAIN' | 'PAPER' };
+
+/**
+ * Routes a swap either to paper mode (no transaction, no hash) or to the user's wallet.
+ * Errors (including wallet rejection) propagate to the caller so the trade is aborted.
+ */
 export async function executeZeroFeeSwap(params: {
   walletAddress: string | null;
   tokenSymbol: string;
@@ -617,43 +454,16 @@ export async function executeZeroFeeSwap(params: {
   expectedTokens: number;
   slippageBps: number;
   forcePaperMode?: boolean;
-}): Promise<{ txHash: string; mode: 'ONCHAIN' | 'PAPER' }> {
+}): Promise<SwapResult> {
   if (params.forcePaperMode) {
-    const randomHex = Array.from({ length: 64 }, () =>
-      Math.floor(Math.random() * 16).toString(16)
-    ).join('');
-    return {
-      txHash: `0x${randomHex}`,
-      mode: 'PAPER',
-    };
+    return { txHash: null, mode: 'PAPER' };
   }
-
-  try {
-    if (params.side === 'BUY') {
-      const res = await executeZeroFeeBuyOnChain(
-        params.tokenAddress,
-        params.amountEth,
-        params.slippageBps / 100,
-        Boolean(params.walletAddress)
-      );
-      return { txHash: res.txHash, mode: 'ONCHAIN' };
-    } else {
-      const res = await executeZeroFeeSellOnChain(
-        params.tokenAddress,
-        String(params.expectedTokens),
-        params.slippageBps / 100,
-        Boolean(params.walletAddress)
-      );
-      return { txHash: res.txHash, mode: 'ONCHAIN' };
-    }
-  } catch {
-    const randomHex = Array.from({ length: 64 }, () =>
-      Math.floor(Math.random() * 16).toString(16)
-    ).join('');
-    return {
-      txHash: `0x${randomHex}`,
-      mode: 'ONCHAIN',
-    };
+  if (!params.walletAddress) {
+    throw new Error('Connect a wallet to trade on-chain (or enable paper mode).');
   }
+  const res =
+    params.side === 'BUY'
+      ? await executeZeroFeeBuyOnChain(params.tokenAddress, params.amountEth)
+      : await executeZeroFeeSellOnChain(params.tokenAddress, String(params.expectedTokens));
+  return { txHash: res.txHash, mode: 'ONCHAIN' };
 }
-

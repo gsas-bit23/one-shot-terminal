@@ -79,7 +79,7 @@ export const ProTradingChart: React.FC<ProTradingChartProps> = ({
 
   const candlesRef = useRef<CandlePoint[]>([]);
 
-  // Live UTC clock matching Axiom bottom chart bar
+  // Live UTC clock matching bottom chart bar
   useEffect(() => {
     const updateClock = () => {
       const now = new Date();
@@ -179,7 +179,7 @@ export const ProTradingChart: React.FC<ProTradingChartProps> = ({
       const plotW = Math.max(100, width - rightAxisWidth);
       const plotH = Math.max(80, height - bottomAxisHeight);
 
-      // Clear background (#06070B Axiom deep obsidian)
+      // Clear background (#06070B deep obsidian)
       ctx.fillStyle = '#06070B';
       ctx.fillRect(0, 0, width, height);
 
@@ -364,7 +364,7 @@ export const ProTradingChart: React.FC<ProTradingChartProps> = ({
               : latest.close.toFixed(6);
       ctx.fillText(latestLabel, plotW + 6, latestY + 3.5);
 
-      // Axiom Interactive Limit Order Target Line (`limit_orders.png` 1:1)
+      // Interactive Limit Order Target Line (`limit_orders.png` 1:1)
       if (showLimitLine) {
         const targetVal = latest.close * (1 + limitTargetPct / 100);
         const targetY = Math.max(18, Math.min(plotH - 18, priceToY(targetVal)));
@@ -478,7 +478,7 @@ export const ProTradingChart: React.FC<ProTradingChartProps> = ({
 
   return (
     <div className="flex flex-col flex-1 min-h-0 bg-[#06070B] select-none">
-      {/* Top Chart Toolbar (1:1 with Axiom full_terminal.webp) */}
+      {/* Top Chart Toolbar (1:1 with full_terminal.webp) */}
       <div className="h-8 px-2.5 border-b border-[#161823] flex items-center justify-between text-[11px] text-[#8A91A6] bg-[#090B11]">
         <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
           {(['1s', '1m', '5m', '15m', '1h', '4h', 'D'] as const).map((tf) => (
