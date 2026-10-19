@@ -1,0 +1,78 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --ax-bg: #06070B;
+  --ax-surface: #0B0D13;
+  --ax-panel: #0E1118;
+  --ax-elevated: #141822;
+  --ax-border: #1B202D;
+  --ax-border-subtle: #141822;
+  --ax-blue: #526FFF;
+  --ax-blue-hover: #647EFF;
+  --ax-green: #2CE59B;
+  --ax-red: #FF4D6A;
+  --ax-cyan: #38BDF8;
+  --ax-text: #F3F5F8;
+  --ax-muted: #7C8496;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background-color: var(--ax-bg);
+  color: var(--ax-text);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+  user-select: none;
+}
+
+.font-mono-tabular {
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Custom sleek Axiom-style terminal scrollbars */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1E2433;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #526FFF;
+}
+
+/* Ambient Yield & Rewards background glow (matches Axiom staking.png & rewards.png) */
+.ax-ambient-canvas {
+  background:
+    radial-gradient(circle at 30% 25%, rgba(82, 111, 255, 0.12), transparent 45%),
+    radial-gradient(circle at 72% 68%, rgba(44, 229, 155, 0.06), transparent 45%),
+    #06070B;
+}
+
+@keyframes pulseIndigo {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(82, 111, 255, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 14px 2px rgba(82, 111, 255, 0.2);
+  }
+}
+
+.ax-glow-pill {
+  animation: pulseIndigo 2.8s infinite ease-in-out;
+}
