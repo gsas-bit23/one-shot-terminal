@@ -128,7 +128,7 @@ export const LandingPage: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               {['New pairs', 'Final stretch', 'Migrated'].map((col, ci) => (
                 <div key={col} className="rounded-xl bg-black/30 border border-white/[0.05] p-3">
-                  <div className="font-mono text-[11px] uppercase tracking-wider text-[#7A8194] mb-3">{col}</div>
+                  <div className="font-mono text-[11px] uppercase tracking-wider text-[#8A91A6] mb-3">{col}</div>
                   {[0, 1, 2].map((r) => (
                     <div key={r} className="flex items-center gap-2 py-2 border-t border-white/[0.04] first:border-0">
                       <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-accent/60 to-fuchsia-500/40" />
@@ -154,7 +154,7 @@ export const LandingPage: React.FC = () => {
             {LANDING_STATS.map((s) => (
               <div key={s.label} className="p-5 md:p-6">
                 <div className="font-mono text-2xl md:text-3xl font-semibold text-white">{s.value}</div>
-                <div className="mt-1 flex items-center gap-2 text-xs text-[#7A8194]">
+                <div className="mt-1 flex items-center gap-2 text-xs text-[#8A91A6]">
                   {s.label}
                   {s.demo && <DemoBadge label="Demo" />}
                 </div>
@@ -169,7 +169,7 @@ export const LandingPage: React.FC = () => {
               <Link key={f.title} to={f.path} className={`${glass} group p-6 hover:border-accent/40 hover:-translate-y-0.5 transition`}>
                 <div className="flex items-center justify-between">
                   <h3 className="font-semibold text-white text-lg">{f.title}</h3>
-                  <ArrowRight className="w-4 h-4 text-[#7A8194] group-hover:text-accent group-hover:translate-x-0.5 transition" />
+                  <ArrowRight className="w-4 h-4 text-[#8A91A6] group-hover:text-accent group-hover:translate-x-0.5 transition" />
                 </div>
                 <p className="mt-2 text-sm text-[#9AA1B2] leading-relaxed">{f.body}</p>
               </Link>
@@ -204,9 +204,27 @@ export const LandingPage: React.FC = () => {
         </Section>
 
         <Section id="fees" eyebrow="Fees & rewards" title="Simple, transparent pricing.">
-          <div className={`${glass} overflow-x-auto`}>
+          {/* Mobile: stacked cards */}
+          <div className="grid gap-3 md:hidden">
+            {FEE_ROWS.map((r) => (
+              <div key={r.tier} className={`${glass} p-5`}>
+                <div className="flex items-center justify-between">
+                  <span className="text-white font-medium">{r.tier}</span>
+                  <span className="font-mono text-emerald-400">{r.fee}</span>
+                </div>
+                <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
+                  <dt className="text-[#8A91A6]">Cashback</dt>
+                  <dd className="text-[#C4C9D4]">{r.cashback}</dd>
+                  <dt className="text-[#8A91A6]">Notes</dt>
+                  <dd className="text-[#C4C9D4]">{r.note}</dd>
+                </dl>
+              </div>
+            ))}
+          </div>
+          {/* Desktop: table */}
+          <div className={`${glass} hidden md:block overflow-x-auto`}>
             <table className="w-full text-sm">
-              <thead className="text-left text-[#7A8194] font-mono text-xs uppercase tracking-wider">
+              <thead className="text-left text-[#8A91A6] font-mono text-xs uppercase tracking-wider">
                 <tr>
                   <th className="p-4">Tier</th>
                   <th className="p-4">Platform fee</th>
@@ -226,7 +244,7 @@ export const LandingPage: React.FC = () => {
               </tbody>
             </table>
           </div>
-          <p className="mt-3 text-xs text-[#7A8194]">Network gas applies. Fees may change before mainnet; any change will be announced in advance.</p>
+          <p className="mt-3 text-xs text-[#8A91A6]">Network gas applies. Fees may change before mainnet; any change will be announced in advance.</p>
         </Section>
 
         <Section eyebrow="Testimonials" title="What traders say.">
@@ -234,7 +252,7 @@ export const LandingPage: React.FC = () => {
             {[0, 1, 2].map((i) => (
               <figure key={i} className={`${glass} p-6 border-dashed`}>
                 <DemoBadge label="Placeholder" />
-                <blockquote className="mt-4 text-sm text-[#7A8194] italic">
+                <blockquote className="mt-4 text-sm text-[#8A91A6] italic">
                   Placeholder: real testimonials will appear here once beta users opt in.
                 </blockquote>
                 <figcaption className="mt-4 flex items-center gap-3">
@@ -256,7 +274,7 @@ export const LandingPage: React.FC = () => {
                   onClick={() => setOpenFaq(openFaq === i ? null : i)}
                 >
                   <span className="font-medium text-white">{f.q}</span>
-                  <ChevronDown className={`w-4 h-4 text-[#7A8194] transition ${openFaq === i ? 'rotate-180' : ''}`} />
+                  <ChevronDown className={`w-4 h-4 text-[#8A91A6] transition ${openFaq === i ? 'rotate-180' : ''}`} />
                 </button>
                 {openFaq === i && <p className="px-5 pb-5 -mt-1 text-sm text-[#9AA1B2] leading-relaxed">{f.a}</p>}
               </div>
@@ -287,13 +305,13 @@ export const LandingPage: React.FC = () => {
               <OneShotLogo className="w-6 h-6" />
               <span className="font-extrabold text-white">ONE SHOT</span>
             </div>
-            <div className="mt-4 flex flex-wrap gap-4 text-sm text-[#7A8194]">
+            <div className="mt-4 flex flex-wrap gap-4 text-sm text-[#8A91A6]">
               <Link to="/pulse" className="hover:text-white">App</Link>
               <a href="https://github.com/gsas-bit23/one-shot-terminal" className="hover:text-white" target="_blank" rel="noreferrer">GitHub</a>
               <a href="#faq" className="hover:text-white">FAQ</a>
             </div>
           </div>
-          <p className="text-xs leading-relaxed text-[#6B7184]">
+          <p className="text-xs leading-relaxed text-[#8A91A6]">
             <strong className="text-[#9AA1B2]">Risk disclosure:</strong> One Shot is experimental software running on a
             public testnet and is provided "as is" without warranty. Trading digital assets, especially newly launched
             tokens and leveraged products, is highly speculative and you can lose all of your funds. Data marked "Demo" or
@@ -301,7 +319,7 @@ export const LandingPage: React.FC = () => {
             responsible for your transactions and for complying with the laws of your jurisdiction.
           </p>
         </div>
-        <div className="text-center text-[11px] text-[#4F5566] pb-8">© {new Date().getFullYear()} One Shot</div>
+        <div className="text-center text-[11px] text-[#8A91A6] pb-8">© {new Date().getFullYear()} One Shot</div>
       </footer>
     </div>
   );

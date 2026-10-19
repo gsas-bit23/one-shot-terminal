@@ -1,8 +1,33 @@
+import { useEffect, useRef, useState } from 'react';
 import { Search, Bell, Star, Wallet, ChevronDown } from 'lucide-react';
 import { OneShotLogo } from '../components/OneShotLogo';
 import { useTerminal } from '../app/TerminalContext';
 
+// `inline` = visibility in the bar, `menu` = visibility inside "More" (the inverse breakpoint).
+// Class strings are literal so Tailwind can see them.
+const NAV_ITEMS = [
+  { id: 'discover', label: 'Discover', inline: 'inline-flex', menu: '' },
+  { id: 'pulse', label: 'Pulse', inline: 'inline-flex', menu: '' },
+  { id: 'trackers', label: 'Trackers', inline: 'hidden md:inline-flex', menu: 'block md:hidden' },
+  { id: 'perps', label: 'Perpetuals', inline: 'hidden lg:inline-flex', menu: 'block lg:hidden' },
+  { id: 'yield', label: 'Yield', inline: 'hidden xl:inline-flex', menu: 'block xl:hidden' },
+  { id: 'vision', label: 'Vision', inline: 'hidden 2xl:inline-flex', menu: 'block 2xl:hidden' },
+  { id: 'portfolio', label: 'Portfolio', inline: 'hidden 2xl:inline-flex', menu: 'block 2xl:hidden' },
+  { id: 'rewards', label: 'Rewards', inline: 'hidden 2xl:inline-flex', menu: 'block 2xl:hidden' },
+] as const;
+
 export function TopNav() {
+  const [moreOpen, setMoreOpen] = useState(false);
+  const moreRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!moreOpen) return;
+    const onDown = (e: MouseEvent) => {
+      if (moreRef.current && !moreRef.current.contains(e.target as Node)) setMoreOpen(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [moreOpen]);
+
   const {
     activeTab,
     setActiveTab,
@@ -17,6 +42,8 @@ export function TopNav() {
     handleConnectWallet,
     activeEthBalanceNum,
   } = useTerminal();
+  const isActiveItem = (id: string) =>
+    activeTab === id || (activeTab === 'terminal' && id === 'discover');
   return (
     <>
       {/* =====================================================================
@@ -38,35 +65,59 @@ export function TopNav() {
             </div>
           </button>
 
-          <nav className="flex items-center gap-0.5 overflow-x-auto no-scrollbar">
-            {(
-              [
-                { id: 'discover', label: 'Discover' },
-                { id: 'pulse', label: 'Pulse' },
-                { id: 'trackers', label: 'Trackers' },
-                { id: 'perps', label: 'Perpetuals' },
-                { id: 'yield', label: 'Yield' },
-                { id: 'vision', label: 'Vision' },
-                { id: 'portfolio', label: 'Portfolio' },
-                { id: 'rewards', label: 'Rewards' },
-              ] as const
-            ).map((item) => {
-              const isActive =
-                activeTab === item.id || (activeTab === 'terminal' && item.id === 'discover');
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => setActiveTab(item.id)}
-                  className={`px-2.5 py-1.5 rounded-md text-[13px] font-medium transition whitespace-nowrap ${
-                    isActive
-                      ? 'text-[#526FFF] font-semibold bg-[#526FFF]/10'
-                      : 'text-[#9CA3AF] hover:text-white hover:bg-[#10131D]'
-                  }`}
+          <nav className="flex items-center gap-0.5" aria-label="Primary">
+            {NAV_ITEMS.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                className={`${item.inline} px-2.5 py-1.5 rounded-md text-[13px] font-medium transition whitespace-nowrap ${
+                  isActiveItem(item.id)
+                    ? 'text-[#526FFF] font-semibold bg-[#526FFF]/10'
+                    : 'text-[#9CA3AF] hover:text-white hover:bg-[#10131D]'
+                }`}
+              >
+                {item.label}
+              </button>
+            ))}
+            {/* Overflow menu: lists the tabs hidden at the current breakpoint */}
+            <div className="relative 2xl:hidden" ref={moreRef}>
+              <button
+                onClick={() => setMoreOpen((v) => !v)}
+                aria-haspopup="menu"
+                aria-expanded={moreOpen}
+                className={`px-2.5 py-1.5 rounded-md text-[13px] font-medium transition whitespace-nowrap inline-flex items-center gap-1 ${
+                  NAV_ITEMS.some((i) => i.inline !== 'inline-flex' && isActiveItem(i.id))
+                    ? 'text-[#526FFF] bg-[#526FFF]/10'
+                    : 'text-[#9CA3AF] hover:text-white hover:bg-[#10131D]'
+                }`}
+              >
+                More <ChevronDown className="w-3 h-3" />
+              </button>
+              {moreOpen && (
+                <div
+                  role="menu"
+                  className="absolute left-0 top-full mt-1 w-44 rounded-lg border border-[#1B1E2B] bg-[#0D0F17] p-1 shadow-2xl z-50"
                 >
-                  {item.label}
-                </button>
-              );
-            })}
+                  {NAV_ITEMS.filter((i) => i.menu).map((item) => (
+                    <button
+                      key={item.id}
+                      role="menuitem"
+                      onClick={() => {
+                        setActiveTab(item.id);
+                        setMoreOpen(false);
+                      }}
+                      className={`${item.menu} w-full text-left px-3 py-2 rounded-md text-[13px] ${
+                        isActiveItem(item.id)
+                          ? 'text-[#526FFF] bg-[#526FFF]/10'
+                          : 'text-[#C4C9D4] hover:bg-[#151926]'
+                      }`}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </nav>
         </div>
 
@@ -81,8 +132,8 @@ export function TopNav() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onFocus={() => setSearchModalOpen(true)}
-              placeholder="Search by token or LP contract"
-              className="w-56 lg:w-64 h-8 pl-8 pr-7 rounded-full bg-[#0D0F17] border border-[#1B1E2B] text-xs text-white placeholder-[#6B7280] focus:outline-none focus:border-[#526FFF]"
+              placeholder="Search token or address"
+              className="w-44 xl:w-52 2xl:w-64 h-8 pl-8 pr-7 rounded-full bg-[#0D0F17] border border-[#1B1E2B] text-xs text-white placeholder-[#6B7280] focus:outline-none focus:border-[#526FFF]"
             />
             <span className="absolute right-2.5 px-1.5 py-0.2 rounded bg-[#161926] border border-[#252A3D] text-[10px] text-[#8A91A6] font-mono-tabular">
               /
