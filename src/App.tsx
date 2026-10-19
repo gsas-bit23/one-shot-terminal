@@ -252,7 +252,7 @@ export function App() {
   const [tokenHoldings, setTokenHoldings] = useState<Record<string, number>>({
     FEATHER: 14500,
     SHERWOOD: 48200,
-    TSLA: 12.5,
+    VOLT: 12.5,
   });
   const [tradeHistory, setTradeHistory] = useState<TradePrint[]>([
     {
@@ -806,17 +806,14 @@ export function App() {
             </span>
           </div>
 
-          {/* Chain Selector Pill (Robinhood Chain Testnet 46630) */}
+          {/* Network pill */}
           <button
             onClick={() => setSecurityModalOpen(true)}
             className="h-8 px-2.5 rounded-full bg-[#0D1412] border border-[#1E382D] flex items-center gap-1.5 text-xs font-semibold text-white hover:border-[#2CE59B]/60 transition"
-            title="Robinhood Chain Testnet (Chain ID 46630) • Zero-Trust Security Architecture"
+            title="Testnet (Chain ID 46630): security details"
           >
             <span className="w-2 h-2 rounded-full bg-[#2CE59B] animate-pulse" />
-            <span>Robinhood</span>
-            <span className="px-1 py-0.2 rounded bg-[#2CE59B]/15 text-[#2CE59B] text-[9px] font-bold">
-              0% FEE
-            </span>
+            <span>Testnet</span>
             <ChevronDown className="w-3 h-3 text-[#8A91A6]" />
           </button>
 
@@ -959,9 +956,6 @@ export function App() {
                     ⚡
                   </span>
                 </h1>
-                <span className="px-2 py-0.5 rounded bg-[#2CE59B]/10 border border-[#2CE59B]/30 text-[#2CE59B] text-[10px] font-semibold">
-                  Robinhood Bonding Curve + V4 AMM • 0% Fee Sniping
-                </span>
               </div>
 
               {/* Right Controls: Filters, Sound, Quick Buy Input, P1/P2/P3 */}
