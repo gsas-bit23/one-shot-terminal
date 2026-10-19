@@ -37,7 +37,7 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-/* Custom sleek Axiom-style terminal scrollbars */
+/* Custom sleek terminal scrollbars */
 ::-webkit-scrollbar {
   width: 4px;
   height: 4px;
@@ -56,7 +56,7 @@ body {
   background: #526FFF;
 }
 
-/* Ambient Yield & Rewards background glow (matches Axiom staking.png & rewards.png) */
+/* Ambient Yield & Rewards background glow (matches staking.png & rewards.png) */
 .ax-ambient-canvas {
   background:
     radial-gradient(circle at 30% 25%, rgba(82, 111, 255, 0.12), transparent 45%),

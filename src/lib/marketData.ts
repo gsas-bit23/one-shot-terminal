@@ -1501,7 +1501,7 @@ export const INITIAL_TWEETS: TweetAlertItem[] = [
     verified: true,
     timeAgo: '42s',
     timestamp: '23:33',
-    text: 'Why pay Axiom 1.00% on every swap when $FEATHER & One Shot Pro route with 0.00% fees, hardware-isolated keys (zero employee wallet lookup), and built-in Migration Sniping?',
+    text: 'Why pay 1.00% on every swap when $FEATHER & One Shot Pro route with 0.00% fees, hardware-isolated keys (zero employee wallet lookup), and built-in Migration Sniping?',
     detectedTicker: 'FEATHER',
     detectedTokenAddress: '0x07fc971fF2C2c9b5E2dcdB581f6AC4Ebaa1f536f',
     category: 'Narrative',
@@ -1604,7 +1604,7 @@ export function formatTokenPrice(price: number): string {
   if (price >= 1) return `$${price.toFixed(2)}`;
   if (price >= 0.01) return `$${price.toFixed(4)}`;
   if (price >= 0.0001) return `$${price.toFixed(6)}`;
-  // Axiom subscript notation for micro-prices e.g. $0.0₄182
+  // subscript notation for micro-prices e.g. $0.0₄182
   const str = price.toFixed(10);
   const match = str.match(/^0\.(0+)([1-9]\d{0,2})/);
   if (match) {

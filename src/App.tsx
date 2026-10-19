@@ -26,6 +26,10 @@ import {
   BadgeCheck,
 } from 'lucide-react';
 import { OneShotLogo } from './components/OneShotLogo';
+import { DemoBadge } from './components/ui/DemoBadge';
+import { useRouteTab } from './routes/useRouteTab';
+import { useTerminalStore } from './store/terminalStore';
+import { useQuery } from '@tanstack/react-query';
 import { TokenAvatar } from './components/TokenAvatar';
 import { ProTradingChart } from './components/ProTradingChart';
 import { LaunchTokenCard } from './components/LaunchTokenCard';
@@ -36,13 +40,13 @@ import {
   TraderScanPopover,
   FloatingWalletTrackerModal,
   FloatingTwitterMonitorModal,
-} from './components/AxiomFloatingWidgets';
+} from './components/FloatingWidgets';
 import {
-  AxiomYieldView,
-  AxiomVisionView,
-  AxiomPortfolioView,
-  AxiomRewardsView,
-} from './components/AxiomHubViews';
+  YieldView,
+  VisionView,
+  PortfolioView,
+  RewardsView,
+} from './components/HubViews';
 import {
   INITIAL_TOKEN_MARKETS,
   PERP_MARKETS,
@@ -68,17 +72,6 @@ import {
   fetchWalletEthBalance,
   shortenAddress,
 } from './lib/robinhoodChain';
-
-type PrimaryTab =
-  | 'discover'
-  | 'pulse'
-  | 'trackers'
-  | 'perps'
-  | 'yield'
-  | 'vision'
-  | 'portfolio'
-  | 'rewards'
-  | 'terminal';
 
 type DiscoverSubTab = 'dex_screener' | 'trending' | 'pump_live';
 type TimeWindow = '5m' | '1h' | '6h' | '24h';
@@ -129,18 +122,29 @@ interface PulseFilterState {
   dexPaidOnly: boolean;
 }
 
+const DEMO_NOTES: Record<string, string> = {
+  pulse: 'Pulse feed, audit scores and X previews are simulated demo data.',
+  discover: 'Discover table metrics are simulated demo data.',
+  terminal: 'Chart, trades and stats are simulated. Only wallet-signed testnet trades are real.',
+  trackers: 'Tracked wallets, copy-trade and X monitor are simulated demo data.',
+  perps: 'Perpetuals are a UI demo: no oracle, PnL or liquidation engine exists yet.',
+  yield: 'Yield vaults and APYs are demo values. No real staking happens.',
+  vision: 'KOL, smart-money and bundle data are simulated demo data.',
+  portfolio: 'Positions and PnL are partially simulated demo data.',
+  rewards: 'Referral tiers and rewards are a demo. Nothing is tracked or paid out yet.',
+};
+
 export function App() {
-  // Primary Axiom Navigation State
-  const [activeTab, setActiveTab] = useState<PrimaryTab>('pulse');
+  // Primary Navigation State
+  const { activeTab, setActiveTab } = useRouteTab();
   const [discoverSubTab, setDiscoverSubTab] = useState<DiscoverSubTab>('dex_screener');
   const [timeWindow, setTimeWindow] = useState<TimeWindow>('1h');
 
   // Market State
   const [tokens, setTokens] = useState<TokenMarket[]>(INITIAL_TOKEN_MARKETS);
   const [perpMarkets, setPerpMarkets] = useState<PerpMarket[]>(PERP_MARKETS);
-  const [selectedTokenAddress, setSelectedTokenAddress] = useState<string>(
-    INITIAL_TOKEN_MARKETS[0].address
-  );
+  const selectedTokenAddress = useTerminalStore((s) => s.selectedTokenAddress);
+  const setSelectedTokenAddress = useTerminalStore((s) => s.setSelectedTokenAddress);
   const [selectedPerpSymbol, setSelectedPerpSymbol] = useState<string>(PERP_MARKETS[0].symbol);
 
   // Search & Watchlist
@@ -153,9 +157,10 @@ export function App() {
 
   // Wallet & Robinhood Chain Telemetry
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
-  const [walletBalanceEth, setWalletBalanceEth] = useState<string>('0.4500');
+  const [walletBalanceEth, setWalletBalanceEth] = useState<string>('0.0000');
   const [paperBalanceEth, setPaperBalanceEth] = useState<number>(2.5);
-  const [paperMode, setPaperMode] = useState<boolean>(false); // Default to LIVE Robinhood Chain Testnet
+  const paperMode = useTerminalStore((s) => s.paperMode);
+  const setPaperMode = useTerminalStore((s) => s.setPaperMode);
   const [blockNumber, setBlockNumber] = useState<number>(138249120);
   const [gasGwei, setGasGwei] = useState<string>('0.010');
   const [rpcLatencyMs, setRpcLatencyMs] = useState<number>(34);
@@ -164,7 +169,7 @@ export function App() {
   const [stakedEth, setStakedEth] = useState<number>(1.25);
   const [stakedUsdc, setStakedUsdc] = useState<number>(2400);
 
-  // Axiom P1 / P2 / P3 Presets & Security
+  // P1 / P2 / P3 Presets & Security
   const [presets, setPresets] = useState<Record<1 | 2 | 3, ExecutionPreset>>(DEFAULT_PRESETS);
   const [activePresetId, setActivePresetId] = useState<1 | 2 | 3>(1);
   const activePreset = presets[activePresetId];
@@ -173,7 +178,7 @@ export function App() {
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
   const [securityModalOpen, setSecurityModalOpen] = useState<boolean>(false);
 
-  // Axiom Floating Panels (`Instant Trade`, `Wallet Tracker`, `Twitter Monitor`, `Pulse Filters`, `Share PnL`)
+  // Floating Panels (`Instant Trade`, `Wallet Tracker`, `Twitter Monitor`, `Pulse Filters`, `Share PnL`)
   const [instantTradeOpen, setInstantTradeOpen] = useState<boolean>(false);
   const [walletTrackerOpen, setWalletTrackerOpen] = useState<boolean>(false);
   const [twitterMonitorOpen, setTwitterMonitorOpen] = useState<boolean>(false);
@@ -401,30 +406,33 @@ export function App() {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, []);
 
-  // Poll live Robinhood Chain Testnet telemetry (Chain ID 46630)
-  useEffect(() => {
-    let mounted = true;
-    const poll = async () => {
+  // Live chain telemetry + wallet balance (TanStack Query polling)
+  const telemetryQuery = useQuery({
+    queryKey: ['chainTelemetry'],
+    queryFn: async () => {
       const t0 = performance.now();
       const tel = await fetchChainTelemetry();
-      const dt = Math.max(18, Math.round(performance.now() - t0));
-      if (!mounted) return;
-      if (tel.blockNumber > 0) setBlockNumber(tel.blockNumber);
-      setGasGwei(tel.gasPriceGwei);
-      setRpcLatencyMs(dt);
+      return { ...tel, latencyMs: Math.max(1, Math.round(performance.now() - t0)) };
+    },
+    refetchInterval: 7000,
+  });
+  useEffect(() => {
+    const tel = telemetryQuery.data;
+    if (!tel) return;
+    if (tel.blockNumber > 0) setBlockNumber(tel.blockNumber);
+    setGasGwei(tel.gasPriceGwei);
+    setRpcLatencyMs(tel.latencyMs);
+  }, [telemetryQuery.data]);
 
-      if (walletAddress) {
-        const bal = await fetchWalletEthBalance(walletAddress);
-        if (mounted) setWalletBalanceEth(bal);
-      }
-    };
-    poll();
-    const timer = setInterval(poll, 7000);
-    return () => {
-      mounted = false;
-      clearInterval(timer);
-    };
-  }, [walletAddress]);
+  const balanceQuery = useQuery({
+    queryKey: ['walletBalance', walletAddress],
+    queryFn: () => fetchWalletEthBalance(walletAddress as string),
+    enabled: Boolean(walletAddress),
+    refetchInterval: 7000,
+  });
+  useEffect(() => {
+    if (balanceQuery.data) setWalletBalanceEth(balanceQuery.data);
+  }, [balanceQuery.data]);
 
   // Real-time sub-second market ticker simulation across all tokens & perps
   useEffect(() => {
@@ -538,8 +546,8 @@ export function App() {
         totalUsd: usdValue,
         totalEth: ethAmt,
         protocolFeeUsd: 0,
-        maker: walletAddress ? shortenAddress(walletAddress) : 'You (0% Fee)',
-        txHash: res.txHash,
+        maker: walletAddress ? shortenAddress(walletAddress) : 'You (paper)',
+        txHash: res.txHash ?? '',
         mevProtected: true,
       };
       setTradeHistory((prev) => [newRecord, ...prev]);
@@ -547,9 +555,9 @@ export function App() {
 
       triggerToast(
         `${side} ${token.symbol} Filled (${activePreset.shortLabel} • 0% Fee)`,
-        `${ethAmt} ETH ($${usdValue.toFixed(2)}) • Saved $${(usdValue * 0.01).toFixed(2)} vs Axiom 1% Fee`,
+        `${ethAmt} ETH ($${usdValue.toFixed(2)}) • Saved $${(usdValue * 0.01).toFixed(2)} vs a typical 1% fee`,
         'success',
-        res.txHash
+        res.txHash ?? undefined
       );
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Transaction rejected';
@@ -724,15 +732,15 @@ export function App() {
   const currentHoldingUsd = currentHoldingTokens * selectedToken.priceUsd;
   const currentInvestedUsd = currentHoldingUsd * 0.78;
   const currentPnlUsd = currentHoldingUsd - currentInvestedUsd;
-  const activeEthBalanceNum = paperMode ? paperBalanceEth : parseFloat(walletBalanceEth) || 0.45;
+  const activeEthBalanceNum = paperMode ? paperBalanceEth : parseFloat(walletBalanceEth) || 0;
 
   return (
     <div className="h-screen w-screen overflow-hidden flex flex-col bg-[#06070B] text-[#F3F4F6] select-none font-sans">
       {/* =====================================================================
-          1. TOP AXIOM NAVIGATION BAR (`full_terminal.webp`, `explore.png`)
+          1. TOP NAVIGATION BAR (`full_terminal.webp`, `explore.png`)
       ===================================================================== */}
       <header className="h-[50px] px-3 border-b border-[#161823] bg-[#06070B] flex items-center justify-between gap-2 shrink-0 z-30">
-        {/* Left: Brand + 8 Primary Axiom Navigation Tabs */}
+        {/* Left: Brand + 8 Primary Navigation Tabs */}
         <div className="flex items-center gap-4 min-w-0">
           <button
             onClick={() => setActiveTab('pulse')}
@@ -812,7 +820,7 @@ export function App() {
             <ChevronDown className="w-3 h-3 text-[#8A91A6]" />
           </button>
 
-          {/* Axiom Electric Blue `Deposit` / Connect Button */}
+          {/* Electric Blue `Deposit` / Connect Button */}
           <button
             onClick={handleConnectWallet}
             className="h-8 px-3.5 rounded-full bg-[#526FFF] hover:bg-[#425FEF] text-white font-semibold text-xs transition shadow-[0_0_15px_rgba(82,111,255,0.35)]"
@@ -853,8 +861,18 @@ export function App() {
         </div>
       </header>
 
+      {/* Demo data notice: every hub below renders simulated data unless stated otherwise */}
+      <div className="px-3 py-1 border-b border-amber-400/20 bg-amber-400/[0.04] flex items-center gap-2 text-[11px] text-amber-200/80 shrink-0">
+        <DemoBadge />
+        <span>
+          {DEMO_NOTES[activeTab] ??
+            'Market data on this screen is simulated for demo purposes. Not financial data.'}
+        </span>
+        {paperMode && <DemoBadge label="Paper mode" className="ml-auto" />}
+      </div>
+
       {/* =====================================================================
-          2. SECONDARY AXIOM WATCHLIST & QUICK-TAPE SUB-HEADER (`full_terminal.webp`)
+          2. SECONDARY WATCHLIST & QUICK-TAPE SUB-HEADER (`full_terminal.webp`)
       ===================================================================== */}
       <div className="h-7 px-3 border-b border-[#161823] bg-[#080A10] flex items-center justify-between text-[11px] shrink-0">
         <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
@@ -924,7 +942,7 @@ export function App() {
       </div>
 
       {/* =====================================================================
-          3. MAIN WORKSPACE CONTENT AREA (8 AXIOM TABS + TOKEN TERMINAL)
+          3. MAIN WORKSPACE CONTENT AREA (8 TABS + TOKEN TERMINAL)
       ===================================================================== */}
       <main className="flex-1 min-h-0 flex overflow-hidden relative">
         {/* -------------------------------------------------------------------
@@ -1000,7 +1018,7 @@ export function App() {
               </div>
             </div>
 
-            {/* 3-Column Axiom Pulse Grid (`New Pairs`, `Final Stretch`, `Migrated`) */}
+            {/* 3-Column Pulse Grid (`New Pairs`, `Final Stretch`, `Migrated`) */}
             <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-3 divide-x divide-[#161823] overflow-hidden">
               {[
                 {
@@ -1092,7 +1110,7 @@ export function App() {
         )}
 
         {/* -------------------------------------------------------------------
-            VIEW B: DISCOVER (Axiom DEX Screener / Trending Table: `explore.png` 1:1)
+            VIEW B: DISCOVER (DEX Screener / Trending Table: `explore.png` 1:1)
         ------------------------------------------------------------------- */}
         {activeTab === 'discover' && (
           <div className="flex-1 flex flex-col min-h-0 bg-[#06070B]">
@@ -1171,7 +1189,7 @@ export function App() {
               </div>
             </div>
 
-            {/* Axiom Discover Table (`explore.png` 1:1 columns: `Pair Info`, `Market Cap`, `Liquidity`, `Volume`, `TXNS`, `Audit Log`, `Action`) */}
+            {/* Discover Table (`explore.png` 1:1 columns: `Pair Info`, `Market Cap`, `Liquidity`, `Volume`, `TXNS`, `Audit Log`, `Action`) */}
             <div className="flex-1 overflow-y-auto">
               <table className="w-full text-left border-collapse">
                 <thead className="sticky top-0 z-10 bg-[#090B11] border-b border-[#161823] text-[11px] text-[#8A91A6] font-medium">
@@ -1485,7 +1503,7 @@ export function App() {
               </div>
             </div>
 
-            {/* 3-Column Axiom Terminal Workspace */}
+            {/* 3-Column Terminal Workspace */}
             <div className="flex-1 min-h-0 flex overflow-hidden">
               {/* Column 1: Chart + Bottom Analytics Dock */}
               <div className="flex-1 flex flex-col min-w-0 min-h-0 border-r border-[#161823]">
@@ -1859,7 +1877,7 @@ export function App() {
                             )
                           }
                           className="p-0.5 rounded bg-[#151928] hover:bg-[#526FFF] text-[#8A91A6] hover:text-white transition"
-                          title="Axiom Trader Scan"
+                          title="Trader Scan"
                         >
                           <Search className="w-2.5 h-2.5" />
                         </button>
@@ -1868,7 +1886,7 @@ export function App() {
                   ))}
                 </div>
 
-                {/* Axiom Trader Scan Popover (`trader_scan.png` 1:1) */}
+                {/* Trader Scan Popover (`trader_scan.png` 1:1) */}
                 {activeTraderScanWallet && (
                   <div className="absolute top-12 right-2 z-50">
                     <TraderScanPopover
@@ -1910,7 +1928,7 @@ export function App() {
                 )}
               </div>
 
-              {/* Column 3 (`315px`): Axiom Spot Execution Ticket (`market_order.png`, `limit_orders.png`, `sniper_buy.png`) */}
+              {/* Column 3 (`315px`): Spot Execution Ticket (`market_order.png`, `limit_orders.png`, `sniper_buy.png`) */}
               <div className="w-[315px] bg-[#080A10] flex flex-col shrink-0 overflow-y-auto">
                 <div className="p-3 space-y-3">
                   {/* 5m / 1h / 6h / 24h Volume + Buy/Sell Flow Bar (`full_terminal.webp` top of right sidebar) */}
@@ -2098,7 +2116,7 @@ export function App() {
                     </div>
                   )}
 
-                  {/* Axiom Execution Settings Strip (`20%` Slippage | `0.001` Priority | `0.001` Bribe | `MEV: Secure`) */}
+                  {/* Execution Settings Strip (`20%` Slippage | `0.001` Priority | `0.001` Bribe | `MEV: Secure`) */}
                   <div className="flex items-center justify-between px-2.5 py-1.5 rounded bg-[#0C0E16] border border-[#171A26] text-[10px] font-mono-tabular text-[#9CA3AF]">
                     <span>⚡ {activePreset.slippagePct}%</span>
                     <span>⛽ {activePreset.priorityFeeEth}</span>
@@ -2281,7 +2299,7 @@ export function App() {
         )}
 
         {/* -------------------------------------------------------------------
-            VIEW D: PERPETUALS (Axiom Hyperliquid Perps Terminal: `perps.png` 1:1)
+            VIEW D: PERPETUALS (Hyperliquid Perps Terminal: `perps.png` 1:1)
         ------------------------------------------------------------------- */}
         {activeTab === 'perps' && (
           <div className="flex-1 flex flex-col min-h-0 bg-[#06070B]">
@@ -2761,10 +2779,10 @@ export function App() {
         )}
 
         {/* -------------------------------------------------------------------
-            VIEW F: YIELD (`AxiomYieldView` matching `staking.png` 1:1)
+            VIEW F: YIELD (`YieldView` matching `staking.png` 1:1)
         ------------------------------------------------------------------- */}
         {activeTab === 'yield' && (
-          <AxiomYieldView
+          <YieldView
             ethBalance={activeEthBalanceNum}
             stakedEth={stakedEth}
             stakedUsdc={stakedUsdc}
@@ -2784,11 +2802,12 @@ export function App() {
         )}
 
         {/* -------------------------------------------------------------------
-            VIEW G: VISION (`AxiomVisionView` KOL Screener + Bundle Checker)
+            VIEW G: VISION (`VisionView` KOL Screener + Bundle Checker)
         ------------------------------------------------------------------- */}
         {activeTab === 'vision' && (
-          <AxiomVisionView
+          <VisionView
             wallets={trackedWallets}
+            onTrackWallet={() => setWalletTrackerOpen(true)}
             tokens={tokens}
             onToggleCopyTrade={(addr) =>
               setTrackedWallets((prev) =>
@@ -2806,10 +2825,10 @@ export function App() {
         )}
 
         {/* -------------------------------------------------------------------
-            VIEW H: PORTFOLIO (`AxiomPortfolioView` matching `portfolio_spot.png`, `portfolio_perp.png`, `multi_wallet.png`)
+            VIEW H: PORTFOLIO (`PortfolioView` matching `portfolio_spot.png`, `portfolio_perp.png`, `multi_wallet.png`)
         ------------------------------------------------------------------- */}
         {activeTab === 'portfolio' && (
-          <AxiomPortfolioView
+          <PortfolioView
             ethBalance={activeEthBalanceNum}
             ethPriceUsd={ethPriceUsd}
             tokenHoldings={tokenHoldings}
@@ -2857,10 +2876,10 @@ export function App() {
         )}
 
         {/* -------------------------------------------------------------------
-            VIEW I: REWARDS (`AxiomRewardsView` matching `rewards.png` 1:1)
+            VIEW I: REWARDS (`RewardsView` matching `rewards.png` 1:1)
         ------------------------------------------------------------------- */}
         {activeTab === 'rewards' && (
-          <AxiomRewardsView
+          <RewardsView
             totalTradesCount={tradeHistory.length}
             onClaimRewards={() =>
               triggerToast(
@@ -2873,7 +2892,7 @@ export function App() {
         )}
 
         {/* ===================================================================
-            FLOATING AXIOM OVERLAYS (`Instant Trade`, `Wallet Tracker`, `Tweet Monitor`)
+            FLOATING OVERLAYS (`Instant Trade`, `Wallet Tracker`, `Tweet Monitor`)
         =================================================================== */}
         <InstantTradeFloatingPanel
           open={instantTradeOpen}
@@ -2966,7 +2985,7 @@ export function App() {
       </main>
 
       {/* =====================================================================
-          4. BOTTOM PERSISTENT AXIOM STATUS BAR (`bottom_bar.png` & `full_terminal.webp`)
+          4. BOTTOM PERSISTENT STATUS BAR (`bottom_bar.png` & `full_terminal.webp`)
       ===================================================================== */}
       <footer className="h-7 px-3 border-t border-[#161823] bg-[#06070B] flex items-center justify-between text-[11px] text-[#8A91A6] shrink-0 z-30">
         {/* Left: PRESET 1 + Wallet Counter + Wallet Tracker + Twitter + Pulse + PnL + ETH Price */}
@@ -3092,7 +3111,7 @@ export function App() {
       </footer>
 
       {/* =====================================================================
-          5. AXIOM 14-FILTER PULSE MODAL (`pulse_filters.png` 1:1)
+          5. 14-FILTER PULSE MODAL (`pulse_filters.png` 1:1)
       ===================================================================== */}
       {pulseFiltersOpen && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
@@ -3101,7 +3120,7 @@ export function App() {
               <div className="flex items-center gap-2">
                 <SlidersHorizontal className="w-4 h-4 text-[#526FFF]" />
                 <span className="font-bold text-sm text-white">
-                  Pulse Filters (14 Axiom Parameters)
+                  Pulse Filters (14 Parameters)
                 </span>
               </div>
               <button

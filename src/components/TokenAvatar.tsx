@@ -8,7 +8,7 @@ interface TokenAvatarProps {
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   rounded?: 'full' | 'xl' | 'lg' | 'md';
   showChainBadge?: boolean;
-  bondingProgress?: number; // 0-100 for Axiom Pulse border ring
+  bondingProgress?: number; // 0-100 for Pulse border ring
 }
 
 const KNOWN_REMOTE_LOGOS: Record<string, string> = {
@@ -251,7 +251,7 @@ export const TokenAvatar: React.FC<TokenAvatarProps> = ({
           ? 'rounded-lg'
           : 'rounded-xl';
 
-  // Axiom Pulse border ring color based on bonding progress
+  // Pulse border ring color based on bonding progress
   const ringBorderClass =
     bondingProgress !== undefined
       ? bondingProgress >= 100
@@ -281,7 +281,7 @@ export const TokenAvatar: React.FC<TokenAvatarProps> = ({
           className="w-4 h-4 rounded-full bg-[#06070B] border border-[#2CE59B] flex items-center justify-center absolute -bottom-1 -right-1 shadow"
           title="Verified Launchpad / Chain"
         >
-          {/* Axiom-style green/white pill icon */}
+          {/* green/white pill icon */}
           <svg viewBox="0 0 16 16" className="w-2.5 h-2.5">
             <g transform="rotate(-45 8 8)">
               <rect x="4" y="2" width="8" height="6" rx="3" fill="#2CE59B" />

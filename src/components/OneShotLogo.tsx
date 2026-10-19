@@ -14,7 +14,7 @@ export const OneShotLogo: React.FC<OneShotLogoProps> = ({
       xmlns="http://www.w3.org/2000/svg"
       className={className}
     >
-      {/* Axiom-inspired Geometric Delta Prism + Precision Reticle */}
+      {/* Geometric Delta Prism + Precision Reticle */}
       <path
         d="M72 14 L134 126 L10 126 Z M72 58 L46.5 104 L97.5 104 Z"
         fill="currentColor"

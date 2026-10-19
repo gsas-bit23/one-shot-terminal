@@ -20,12 +20,21 @@ const robinhoodTestnet = defineChain({
   },
 });
 
+// SECURITY: these dev-server endpoints sign with the local deployer key (.deployer.json) and have
+// no authentication. They are OFF by default and only mount under `vite dev` when
+// ENABLE_DEV_RELAYER=true is set explicitly. Never expose them publicly; never use in production.
+const DEV_RELAYER_ENABLED = process.env.ENABLE_DEV_RELAYER === 'true';
+
 export default defineConfig({
   plugins: [
     react(),
     {
-      name: 'robinhood-terminal-zero-fee-relayer',
+      name: 'one-shot-dev-relayer',
+      apply: 'serve',
       configureServer(server) {
+        if (!DEV_RELAYER_ENABLED) return;
+        // eslint-disable-next-line no-console
+        console.warn('[one-shot] ENABLE_DEV_RELAYER=true: unauthenticated local relayer endpoints are mounted.');
         // 1. On-Chain 0% Fee Swap Relayer (for Embedded Session Key / Instant Execution)
         server.middlewares.use('/api/relayer-swap', async (req, res) => {
           if (req.method !== 'POST') {

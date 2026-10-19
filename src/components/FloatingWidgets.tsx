@@ -28,7 +28,7 @@ import {
 import { TokenAvatar } from './TokenAvatar';
 
 // ============================================================================
-// 1. AXIOM INSTANT TRADE FLOATING PANEL (Matches instant_trade.png 1:1)
+// 1. INSTANT TRADE FLOATING PANEL (Matches instant_trade.png 1:1)
 // ============================================================================
 interface InstantTradePanelProps {
   open: boolean;
@@ -63,7 +63,7 @@ export const InstantTradeFloatingPanel: React.FC<InstantTradePanelProps> = ({
   const [spaceHeld, setSpaceHeld] = useState(false);
   const [advStrategy, setAdvStrategy] = useState(false);
 
-  // Space + Key Hotkey execution (Axiom Instant Trade spec)
+  // Space + Key Hotkey execution (Instant Trade spec)
   useEffect(() => {
     if (!open || !hotkeysEnabled) return;
 
@@ -274,7 +274,7 @@ export const InstantTradeFloatingPanel: React.FC<InstantTradePanelProps> = ({
 };
 
 // ============================================================================
-// 2. AXIOM TRADER SCAN POPOVER (Matches trader_scan.png 1:1)
+// 2. TRADER SCAN POPOVER (Matches trader_scan.png 1:1)
 // ============================================================================
 interface TraderScanPopoverProps {
   makerAddress: string;

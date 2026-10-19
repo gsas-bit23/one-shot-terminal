@@ -60,7 +60,7 @@ export const LaunchTokenCard: React.FC<LaunchTokenCardProps> = ({
   const insidersPct = Math.round(token.security.insidersPct ?? 0);
   const bundlerPct = Math.round(token.security.bundlerPct);
 
-  // Axiom Market Cap color coding: Cyan for early ($10K-$100K), Emerald for <$25K or >$1M, Gold for mid-cap
+  // Market Cap color coding: Cyan for early ($10K-$100K), Emerald for <$25K or >$1M, Gold for mid-cap
   const mcColorClass =
     token.marketCapUsd >= 1_000_000
       ? 'text-[#2CE59B]'
@@ -77,7 +77,7 @@ export const LaunchTokenCard: React.FC<LaunchTokenCardProps> = ({
           : 'bg-[#090B10] hover:bg-[#0E121B]'
       }`}
     >
-      {/* Twitter Narrative Preview Popup (Axiom Twitter Preview Popup feature) */}
+      {/* Twitter Narrative Preview Popup (Twitter Preview Popup feature) */}
       {showTweetPopup && token.tweetPreview && (
         <div
           onClick={(e) => e.stopPropagation()}
@@ -121,7 +121,7 @@ export const LaunchTokenCard: React.FC<LaunchTokenCardProps> = ({
           bondingProgress={token.bondingProgress}
         />
 
-        {/* Center: 3-Row Axiom Pulse Metadata */}
+        {/* Center: 3-Row Pulse Metadata */}
         <div className="flex-1 min-w-0">
           {/* Row 1: Ticker + Full Name + Copy Icon */}
           <div className="flex items-center gap-1.5 leading-tight">
@@ -189,7 +189,7 @@ export const LaunchTokenCard: React.FC<LaunchTokenCardProps> = ({
             </span>
           </div>
 
-          {/* Row 3: The 5 Axiom Security & Distribution Micro-Pills */}
+          {/* Row 3: The 5 Security & Distribution Micro-Pills */}
           <div
             onClick={(e) => onInspectAudit(token, e)}
             className="flex items-center flex-wrap gap-1 mt-1.5"
@@ -274,7 +274,7 @@ export const LaunchTokenCard: React.FC<LaunchTokenCardProps> = ({
           </div>
         </div>
 
-        {/* Right: MC, Volume, TX Bar & Axiom Indigo Quick-Buy Button */}
+        {/* Right: MC, Volume, TX Bar & Indigo Quick-Buy Button */}
         <div className="flex flex-col items-end justify-between shrink-0 text-right">
           <div className="flex items-baseline gap-1 leading-none">
             <span className="text-[10px] text-[#7C8496] font-medium">MC</span>
@@ -312,7 +312,7 @@ export const LaunchTokenCard: React.FC<LaunchTokenCardProps> = ({
                     ? 'bg-[#2CE59B]/20 text-[#2CE59B] border-[#2CE59B]'
                     : 'bg-[#141824] text-[#94A3B8] hover:text-white border-[#262D40]'
                 }`}
-                title="Axiom Migration Sniper: Auto-buy the instant bonding curve reaches 100%"
+                title="Migration Sniper: Auto-buy the instant bonding curve reaches 100%"
               >
                 <Crosshair className="w-2.5 h-2.5" />
                 {snipeArmed ? 'Armed' : 'Snipe'}

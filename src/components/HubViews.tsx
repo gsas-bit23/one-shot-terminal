@@ -33,7 +33,7 @@ import {
 import { TokenAvatar } from './TokenAvatar';
 
 // ============================================================================
-// 1. AXIOM YIELD / STAKING VIEW (Matches staking.png 1:1)
+// 1. YIELD / STAKING VIEW (Matches staking.png 1:1)
 // ============================================================================
 interface YieldViewProps {
   ethBalance: number;
@@ -44,7 +44,7 @@ interface YieldViewProps {
   onStakeUsdc: (amount: number) => void;
 }
 
-export const AxiomYieldView: React.FC<YieldViewProps> = ({
+export const YieldView: React.FC<YieldViewProps> = ({
   ethBalance,
   stakedEth,
   stakedUsdc,
@@ -200,7 +200,7 @@ export const AxiomYieldView: React.FC<YieldViewProps> = ({
 };
 
 // ============================================================================
-// 2. AXIOM VISION VIEW (KOL Screener, Smart Money Cards & Bundle Checker)
+// 2. VISION VIEW (KOL Screener, Smart Money Cards & Bundle Checker)
 // ============================================================================
 interface VisionViewProps {
   wallets: TrackedWallet[];
@@ -211,7 +211,7 @@ interface VisionViewProps {
   onQuickBuy: (token: TokenMarket, e: React.MouseEvent) => void;
 }
 
-export const AxiomVisionView: React.FC<VisionViewProps> = ({
+export const VisionView: React.FC<VisionViewProps> = ({
   wallets,
   tokens,
   onTrackWallet,
@@ -391,13 +391,13 @@ export const AxiomVisionView: React.FC<VisionViewProps> = ({
         </div>
       )}
 
-      {/* Axiom Bundle Checker & Block-Pattern Scanner */}
+      {/* Bundle Checker & Block-Pattern Scanner */}
       <div className="rounded-xl bg-[#0B0D13] border border-[#1B202E] overflow-hidden">
         <div className="flex items-center justify-between px-4 py-3 border-b border-[#1B202E] bg-[#080A0F]">
           <div className="flex items-center gap-2">
             <Boxes className="w-4 h-4 text-[#526FFF]" />
             <span className="font-bold text-[13.5px] text-white">
-              Axiom Bundle Checker — Live Block-Signature Scanner
+              Bundle Checker — Live Block-Signature Scanner
             </span>
           </div>
           <span className="text-[11px] text-[#7C8496]">
@@ -455,7 +455,7 @@ export const AxiomVisionView: React.FC<VisionViewProps> = ({
 };
 
 // ============================================================================
-// 3. AXIOM PORTFOLIO & MULTI-WALLET VIEW (Matches portfolio_spot.png, portfolio_perp.png, multi_wallet.png)
+// 3. PORTFOLIO & MULTI-WALLET VIEW (Matches portfolio_spot.png, portfolio_perp.png, multi_wallet.png)
 // ============================================================================
 interface PortfolioViewProps {
   ethBalance: number;
@@ -471,7 +471,7 @@ interface PortfolioViewProps {
   onOpenSharePnl: (token: TokenMarket) => void;
 }
 
-export const AxiomPortfolioView: React.FC<PortfolioViewProps> = ({
+export const PortfolioView: React.FC<PortfolioViewProps> = ({
   ethBalance,
   ethPriceUsd,
   tokenHoldings,
@@ -960,14 +960,14 @@ export const AxiomPortfolioView: React.FC<PortfolioViewProps> = ({
 };
 
 // ============================================================================
-// 4. AXIOM REWARDS & 0% FEE MULTIPLIER VIEW (Matches rewards.png & axiom-fees.md)
+// 4. REWARDS & 0% FEE MULTIPLIER VIEW
 // ============================================================================
 interface RewardsViewProps {
   totalTradesCount: number;
   onClaimRewards: () => void;
 }
 
-export const AxiomRewardsView: React.FC<RewardsViewProps> = ({
+export const RewardsView: React.FC<RewardsViewProps> = ({
   totalTradesCount,
   onClaimRewards,
 }) => {
@@ -975,13 +975,13 @@ export const AxiomRewardsView: React.FC<RewardsViewProps> = ({
   const referralUrl = 'https://oneshot.trade/@oneshot';
 
   const tiers = [
-    { icon: '🌲', name: 'Wood', mult: '1X', axiomFee: '0.95%', oneShotFee: '0.00%', rebate: '0.05%' },
-    { icon: '🥉', name: 'Bronze', mult: '2X', axiomFee: '0.90%', oneShotFee: '0.00%', rebate: '0.10%' },
-    { icon: '🥈', name: 'Silver', mult: '2.5X', axiomFee: '0.875%', oneShotFee: '0.00%', rebate: '0.125%' },
-    { icon: '🥇', name: 'Gold', mult: '3X', axiomFee: '0.85%', oneShotFee: '0.00%', rebate: '0.15%' },
-    { icon: '💿', name: 'Platinum', mult: '3.5X', axiomFee: '0.825%', oneShotFee: '0.00%', rebate: '0.175%' },
-    { icon: '💎', name: 'Diamond', mult: '4X', axiomFee: '0.80%', oneShotFee: '0.00%', rebate: '0.20%' },
-    { icon: '🏆', name: 'Champion', mult: '5X', axiomFee: '0.75%', oneShotFee: '0.00%', rebate: '0.25%' },
+    { icon: '🌲', name: 'Wood', mult: '1X', typicalFee: '0.95%', oneShotFee: '0.00%', rebate: '0.05%' },
+    { icon: '🥉', name: 'Bronze', mult: '2X', typicalFee: '0.90%', oneShotFee: '0.00%', rebate: '0.10%' },
+    { icon: '🥈', name: 'Silver', mult: '2.5X', typicalFee: '0.875%', oneShotFee: '0.00%', rebate: '0.125%' },
+    { icon: '🥇', name: 'Gold', mult: '3X', typicalFee: '0.85%', oneShotFee: '0.00%', rebate: '0.15%' },
+    { icon: '💿', name: 'Platinum', mult: '3.5X', typicalFee: '0.825%', oneShotFee: '0.00%', rebate: '0.175%' },
+    { icon: '💎', name: 'Diamond', mult: '4X', typicalFee: '0.80%', oneShotFee: '0.00%', rebate: '0.20%' },
+    { icon: '🏆', name: 'Champion', mult: '5X', typicalFee: '0.75%', oneShotFee: '0.00%', rebate: '0.25%' },
   ];
 
   return (
@@ -998,7 +998,7 @@ export const AxiomRewardsView: React.FC<RewardsViewProps> = ({
                 One Shot Rewards, Points & 3-Tier Revenue Share
               </h1>
               <p className="text-[12.5px] text-[#94A3B8] mt-0.5">
-                Unlike Axiom (which charges 1.00% fee per trade), One Shot is 100% free and shares sequencer/LP rebates across 3 referral levels.
+                Unlike typical terminals (around 1.00% fee per trade), One Shot is 100% free and shares sequencer/LP rebates across 3 referral levels.
               </p>
             </div>
 
@@ -1077,11 +1077,11 @@ export const AxiomRewardsView: React.FC<RewardsViewProps> = ({
           </div>
         </div>
 
-        {/* Multiplier & Cashback Tier Table (Matches axiom-fees.md with One Shot 0% Upgrade) */}
+        {/* Multiplier & Cashback Tier Table */}
         <div className="rounded-2xl bg-[#0B0D13] border border-[#1B202E] overflow-hidden">
           <div className="px-5 py-3.5 border-b border-[#1B202E] flex items-center justify-between">
             <span className="font-bold text-[14px] text-white">
-              Multiplier Tiers & Cashback Schedule (One Shot 0% vs Axiom 1%)
+              Multiplier Tiers & Cashback Schedule (One Shot 0% vs typical 1%)
             </span>
             <span className="text-[11.5px] text-[#2CE59B] font-mono-tabular font-bold">
               Your Active Points: {(1420 + totalTradesCount * 250).toLocaleString()} PTS
@@ -1090,7 +1090,7 @@ export const AxiomRewardsView: React.FC<RewardsViewProps> = ({
           <div className="grid grid-cols-5 px-5 py-2.5 text-[11px] font-semibold text-[#7C8496] bg-[#080A0F] border-b border-[#151924]">
             <div>Tier</div>
             <div>Multiplier</div>
-            <div>Axiom Net Fee</div>
+            <div>Typical Net Fee</div>
             <div>One Shot Net Fee</div>
             <div className="text-right">Gas & LP Cashback</div>
           </div>
@@ -1107,7 +1107,7 @@ export const AxiomRewardsView: React.FC<RewardsViewProps> = ({
                   <span>{t.name}</span>
                 </div>
                 <div className="font-mono-tabular font-bold text-[#526FFF]">{t.mult}</div>
-                <div className="font-mono-tabular text-[#FF4D6A] line-through">{t.axiomFee}</div>
+                <div className="font-mono-tabular text-[#FF4D6A] line-through">{t.typicalFee}</div>
                 <div className="font-mono-tabular font-extrabold text-[#2CE59B]">
                   {t.oneShotFee} (FREE)
                 </div>
